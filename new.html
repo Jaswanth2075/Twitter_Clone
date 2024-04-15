@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter-like Interface</title>
+    <style>
+        /* Shared Styles (unchanged) */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #container,
+        .profile {
+            background-color: #fff;
+            max-width: 600px;
+            width: 100%;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        button {
+            background-color: #4ea1f3;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #3685c8;
+        }
+
+        textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4ea1f3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .tweet {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            padding: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .tweet p {
+            margin: 0;
+            word-wrap: break-word;
+        }
+
+        .interaction {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .interaction button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            color: #888;
+        }
+
+        .interaction button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .stats {
+            margin-top: 10px;
+            color: #888;
+        }
+
+        .media {
+            margin-top: 10px;
+        }
+
+        .media img,
+        .media video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .profile {
+            display: none;
+            text-align: center;
+        }
+
+        .profile img {
+            width: 100px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #backButton {
+            margin-top: 10px;
+        }
+
+        .comment-section {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+
+        .comment-section textarea {
+            margin-bottom: 5px;
+        }
+
+        .comment-section button {
+            align-self: flex-end;
+            margin-top: 5px;
+        }
+
+        /* New Styles for Footer */
+        footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .footer-button {
+            background-color: #4ea1f3;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .footer-button:hover {
+            background-color: #3685c8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Page -->
+    <div id="container">
+        <div class="header">
+            <h1>Twitter-like Interface</h1>
+            <button id="profileButton" onclick="showProfile()">View Profile</button>
+        </div>
+        <textarea id="tweetInput" placeholder="What's happening?"></textarea>
+        <input type="file" id="mediaInput" accept="image/*,video/*">
+        <button id="tweetButton" onclick="postTweet()">Tweet</button>
+        <ul id="tweetList"></ul>
+    </div>
+
+    <!-- Profile Page -->
+    <div class="profile" id="profilePage">
+        <div class="profile-header">
+            <img src="https://placekitten.com/100/100" alt="Profile Picture">
+            <h2>User's Profile</h2>
+        </div>
+        <ul id="userTweets"></ul>
+        <button id="backButton" onclick="showMainPage()">Back to Home</button>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <button class="footer-button" onclick="showProfile()">Profile Page</button>
+        <button class="footer-button">About Twitter</button>
+        <button class="footer-button">Login</button>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        var tweets = [];
+
+        function postTweet() {
+            var tweetText = $('#tweetInput').val();
+            var mediaFile = $('#mediaInput')[0].files[0];
+
+            if (tweetText.trim() !== '' || mediaFile) {
+                var tweet = { text: tweetText, likes: 0, retweets: 0, comments: [], media: [] };
+
+                if (mediaFile) {
+                    var mediaType = mediaFile.type.split('/')[0]; // 'image' or 'video'
+                    var mediaUrl = URL.createObjectURL(mediaFile);
+
+                    tweet.media.push({ type: mediaType, url: mediaUrl });
+                }
+
+                tweets.unshift(tweet);
+                updateTweetList();
+                $('#tweetInput').val('');
+                $('#mediaInput').val('');
+            }
+        }
+
+        function likeTweet(index) {
+            if (tweets[index].likes < 1) {
+                tweets[index].likes++;
+                updateTweetList();
+            }
+        }
+
+        function retweet(index) {
+            if (tweets[index].retweets < 1) {
+                tweets[index].retweets++;
+                updateTweetList();
+            }
+        }
+
+        function comment(index, commentText) {
+            if (commentText.trim() !== '') {
+                tweets[index].comments.push(commentText);
+                updateTweetList();
+            }
+        }
+
+        function renderMedia(mediaArray) {
+            if (mediaArray.length === 0) {
+                return '';
+            }
+
+            var mediaHtml = '<div class="media">';
+
+            mediaArray.forEach(function (media) {
+                if (media.type === 'image') {
+                    mediaHtml += `<img src="${media.url}" alt="Image">`;
+                } else if (media.type === 'video') {
+                    mediaHtml += `<video controls><source src="${media.url}" type="video/mp4">Your browser does not support the video tag.</video>`;
+                }
+            });
+
+            mediaHtml += '</div>';
+            return mediaHtml;
+        }
+
+        function renderComments(commentsArray) {
+            if (commentsArray.length === 0) {
+                return '';
+            }
+
+            var commentsHtml = '<div class="comment-section">';
+
+            commentsArray.forEach(function (comment) {
+                commentsHtml += `<p>${comment}</p>`;
+            });
+
+            commentsHtml += '</div>';
+            return commentsHtml;
+        }
+
+        function updateTweetList() {
+            var tweetList = $('#tweetList');
+            tweetList.empty();
+
+            tweets.forEach(function (tweet, index) {
+                var tweetHtml = `
+                    <li class="tweet">
+                        <p>${tweet.text}</p>
+                        ${renderMedia(tweet.media)}
+                        <div class="interaction">
+                            <button onclick="likeTweet(${index})">👍 Like (${tweet.likes})</button>
+                            <button onclick="retweet(${index})">🔁 Retweet (${tweet.retweets})</button>
+                        </div>
+                        <div class="stats">
+                            <span>${tweet.likes} Likes</span>
+                            <span>${tweet.retweets} Retweets</span>
+                            <span>${tweet.comments.length} Comments</span>
+                        </div>
+                        ${renderComments(tweet.comments)}
+                        <div class="comment-section">
+                            <textarea placeholder="Add a comment..."></textarea>
+                            <button onclick="comment(${index}, $(this).prev().val())">Comment</button>
+                        </div>
+                    </li>`;
+                tweetList.append(tweetHtml);
+            });
+
+            updateProfilePage();
+        }
+
+        function updateProfilePage() {
+            var userTweets = $('#userTweets');
+            userTweets.empty();
+
+            tweets.forEach(function (tweet) {
+                var tweetHtml = `<li>${tweet.text}</li>`;
+                userTweets.append(tweetHtml);
+            });
+        }
+
+        function showProfile() {
+            updateProfilePage();
+            $('#container').hide();
+            $('.profile').show();
+        }
+
+        function showMainPage() {
+            $('#container').show();
+            $('.profile').hide();
+        }
+
+        // Initially hide the profile page
+        $(document).ready(function () {
+            $('.profile').hide();
+        });
+    </script>
+</body>
+</html>
